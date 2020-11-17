@@ -33,7 +33,7 @@ def circular_interpolation(radius, latents_persistent, latents_interpolate):
     latents = latents_a + latents_x * latents_axis_x + latents_y * latents_axis_y
     return latents
 
-def generate_from_generator_adaptive(psi,radius_large,radius_small,step1,step2,video_length, Gs):
+def generate_from_generator_adaptive(psi,radius_large,radius_small,step1,step2,video_length,seed,Gs):
     # psi = args.psi # 0.7
     # radius_large = args.radius_large # 600.0
     # radius_small = args.radius_small # 40.0
@@ -43,6 +43,8 @@ def generate_from_generator_adaptive(psi,radius_large,radius_small,step1,step2,v
     output_format = dict(func=tflib.convert_images_to_uint8, nchw_to_nhwc=True)
     
     # latents for the circular interpolation in latent space
+    if seed:
+        np.random.RandomState(seed)
     rnd = np.random
     latents_a = rnd.randn(1, Gs.input_shape[1])
     latents_b = rnd.randn(1, Gs.input_shape[1])
@@ -91,14 +93,14 @@ def generate_from_generator_adaptive(psi,radius_large,radius_small,step1,step2,v
 
     return output_frames
 
-def main(pkl,psi,radius_large,radius_small,step1,step2,video_length=1.0):
+def main(pkl,psi,radius_large,radius_small,step1,step2,seed,video_length=1.0):
 
     tflib.init_tf()
     print('Loading networks from "%s"...' % pkl)
     with dnnlib.util.open_url(pkl) as fp:
         _G, _D, Gs = pickle.load(fp)
 
-    frames = generate_from_generator_adaptive(psi,radius_large,radius_small,step1,step2,video_length, Gs)
+    frames = generate_from_generator_adaptive(psi,radius_large,radius_small,step1,step2,video_length,seed, Gs)
     frames = moviepy.editor.ImageSequenceClip(frames, fps=30)
 
     # Generate video at the current date and timestamp
@@ -126,8 +128,9 @@ if __name__ == "__main__":
     parser.add_argument('--radius_small', help='The radius for the latent space interpolation', default=40.0, type=float)
     parser.add_argument('--step1', help='The value of the step/increment for the constant layer interpolation', default=0.005, type=float)
     parser.add_argument('--step2', help='The value of the step/increment for the latent space interpolation', default=0.0025, type=float)
+    parser.add_argument('--seed', help='Seed value for random', default=None, type=int)
     parser.add_argument('--video_length', help='The length of the video in terms of circular interpolation (recommended to keep at 1.0)', default=1.0, type=float)
 
     args = parser.parse_args()
 
-    main(args.pkl, args.psi, args.radius_large, args.radius_small, args.step1, args.step2, args.video_length)
+    main(args.pkl, args.psi, args.radius_large, args.radius_small, args.step1, args.step2, args.seed, args.video_length)
