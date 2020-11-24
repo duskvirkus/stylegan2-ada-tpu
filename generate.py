@@ -218,9 +218,8 @@ def generate_latent_images(zs, truncation_psi, outdir, save_npy,prefix,vidname,f
         'output_transform': dict(func=tflib.convert_images_to_uint8, nchw_to_nhwc=True),
         'randomize_noise': False
     }
-
-    if not isinstance(truncation_psi, list):
-        truncation_psi = [truncation_psi] * len(zs)
+    if truncation_psi is not None:
+        Gs_kwargs['truncation_psi'] = truncation_psi
 
     for z_idx, z in enumerate(zs):
         if isinstance(z,list):
@@ -228,7 +227,6 @@ def generate_latent_images(zs, truncation_psi, outdir, save_npy,prefix,vidname,f
         elif isinstance(z,np.ndarray):
           z.reshape(1,512)
         print('Generating image for step %d/%d ...' % (z_idx, len(zs)))
-        Gs_kwargs['truncation_psi'] = truncation_psi[z_idx]
         noise_rnd = np.random.RandomState(1) # fix noise
         tflib.set_vars({var: noise_rnd.randn(*var.shape.as_list()) for var in noise_vars}) # [height, width]
         images = Gs.run(z, None, **Gs_kwargs) # [minibatch, height, width, channel]
@@ -243,9 +241,10 @@ def generate_images_in_w_space(ws, truncation_psi,outdir,save_npy,prefix,vidname
 
     Gs_kwargs = {
         'output_transform': dict(func=tflib.convert_images_to_uint8, nchw_to_nhwc=True),
-        'randomize_noise': False,
-        'truncation_psi': truncation_psi
+        'randomize_noise': False
     }
+    if truncation_psi is not None:
+        Gs_kwargs['truncation_psi'] = truncation_psi
 
     for w_idx, w in enumerate(ws):
         print('Generating image for step %d/%d ...' % (w_idx, len(ws)))
@@ -273,9 +272,10 @@ def generate_latent_walk(network_pkl, truncation_psi, outdir, walk_type, frames,
     # Render images for dlatents initialized from random seeds.
     Gs_kwargs = {
         'output_transform': dict(func=tflib.convert_images_to_uint8, nchw_to_nhwc=True),
-        'randomize_noise': False,
-        'truncation_psi': truncation_psi
+        'randomize_noise': False
     }
+    if truncation_psi is not None:
+        Gs_kwargs['truncation_psi'] = truncation_psi
 
     noise_vars = [var for name, var in Gs.components.synthesis.vars.items() if name.startswith('noise')]
     zs = []
