@@ -695,8 +695,6 @@ def create_from_images(tfrecord_dir, image_dir, shuffle):
         error('No input images found')
 
     img = np.asarray(PIL.Image.open(image_filenames[0]))
-    print(img.shape)
-    shape = img.shape
     resolution = img.shape[0]
     channels = img.shape[2] if img.ndim == 3 else 1
     if img.shape[1] != resolution:
@@ -711,13 +709,9 @@ def create_from_images(tfrecord_dir, image_dir, shuffle):
         for idx in range(order.size):
             img = np.asarray(PIL.Image.open(image_filenames[order[idx]]))
             if channels == 1:
-                print("Greyscale, adding dimension:", image_filenames[order[idx]], img.shape)
                 img = img[np.newaxis, :, :] # HW => CHW
             else:
                 img = img.transpose([2, 0, 1]) # HWC => CHW
-            if img.shape != shape:
-                print("Wrong shape:", image_filenames[order[idx]], img.shape, "should be", shape)
-                continue
             tfr.add_image(img)
 
 #----------------------------------------------------------------------------
