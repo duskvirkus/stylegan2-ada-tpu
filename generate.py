@@ -61,13 +61,15 @@ def create_image_grid(images, grid_size=None):
 
 #----------------------------------------------------------------------------
 
-def generate_images(network_pkl, seeds, truncation_psi, outdir, class_idx=None, dlatents_npz=None, grid=False):
+def generate_images(network_pkl, seeds, truncation_psi, outdir, class_idx=None, dlatents_npz=None, grid=False, save_vector=False, fixnoise=False):
     tflib.init_tf()
     print('Loading networks from "%s"...' % network_pkl)
     with dnnlib.util.open_url(network_pkl) as fp:
         _G, _D, Gs = pickle.load(fp)
 
     os.makedirs(outdir, exist_ok=True)
+    if(save_vector):
+        os.makedirs(outdir+"/vectors", exist_ok=True)
 
     # Render images for a given dlatent vector.
     if dlatents_npz is not None:
@@ -104,10 +106,17 @@ def generate_images(network_pkl, seeds, truncation_psi, outdir, class_idx=None, 
         print('Generating image for seed %d (%d/%d) ...' % (seed, seed_idx, len(seeds)))
         rnd = np.random.RandomState(seed)
         z = rnd.randn(1, *Gs.input_shape[1:]) # [minibatch, component]
-        tflib.set_vars({var: rnd.randn(*var.shape.as_list()) for var in noise_vars}) # [height, width]
+        if(fixnoise):
+            noise_rnd = np.random.RandomState(1) # fix noise
+            tflib.set_vars({var: noise_rnd.randn(*var.shape.as_list()) for var in noise_vars}) # [height, width]
+        else:
+            tflib.set_vars({var: rnd.randn(*var.shape.as_list()) for var in noise_vars}) # [height, width]
         image = Gs.run(z, label, **Gs_kwargs) # [minibatch, height, width, channel]
         images.append(image[0])
         PIL.Image.fromarray(image[0], 'RGB').save(f'{outdir}/seed{seed:04d}.png')
+        if(save_vector):
+            np.save(f'{outdir}/vectors/seed{seed:04d}',z)
+            # np.savetxt(f'{outdir}/vectors/seed{seed:04d}',z)
 
     # If user wants to save a grid of the generated images
     if grid:
@@ -213,14 +222,18 @@ def convertZtoW(latent, truncation_psi=0.7, truncation_cutoff=9):
 
     return dlatent
 
-def generate_latent_images(zs, truncation_psi, outdir, save_npy,prefix,vidname,framerate):
+def generate_latent_images(zs, truncation_psi, outdir, save_npy,prefix,vidname,framerate,class_idx=None):
     Gs_kwargs = {
         'output_transform': dict(func=tflib.convert_images_to_uint8, nchw_to_nhwc=True),
         'randomize_noise': False
     }
+    if truncation_psi is not None:
+        Gs_kwargs['truncation_psi'] = truncation_psi
 
-    if not isinstance(truncation_psi, list):
-        truncation_psi = [truncation_psi] * len(zs)
+    noise_vars = [var for name, var in Gs.components.synthesis.vars.items() if name.startswith('noise')]
+    label = np.zeros([1] + Gs.input_shapes[1][1:])
+    if class_idx is not None:
+        label[:, class_idx] = 1
 
     for z_idx, z in enumerate(zs):
         if isinstance(z,list):
@@ -228,35 +241,43 @@ def generate_latent_images(zs, truncation_psi, outdir, save_npy,prefix,vidname,f
         elif isinstance(z,np.ndarray):
           z.reshape(1,512)
         print('Generating image for step %d/%d ...' % (z_idx, len(zs)))
-        Gs_kwargs['truncation_psi'] = truncation_psi[z_idx]
         noise_rnd = np.random.RandomState(1) # fix noise
         tflib.set_vars({var: noise_rnd.randn(*var.shape.as_list()) for var in noise_vars}) # [height, width]
-        images = Gs.run(z, None, **Gs_kwargs) # [minibatch, height, width, channel]
-        PIL.Image.fromarray(images[0], 'RGB').save(f'{outdir}/{prefix}{z_idx:05d}.png')
+        images = Gs.run(z, label, **Gs_kwargs) # [minibatch, height, width, channel]
+        PIL.Image.fromarray(images[0], 'RGB').save(f'{outdir}/frames/{prefix}{z_idx:05d}.png')
         if save_npy:
-          np.save(dnnlib.make_run_dir_path('%s%05d.npy' % (prefix,z_idx)), z)
+            np.save(f'{outdir}/vectors/{prefix}{z_idx:05d}.npz',z)
+            # np.savetxt(f'{outdir}/vectors/{prefix}{z_idx:05d}.txt',z)
 
-    cmd="ffmpeg -y -r {} -i {}/{}%05d.png -vcodec libx264 -pix_fmt yuv420p {}/walk-{}-{}fps.mp4".format(framerate,outdir,prefix,outdir,vidname,framerate)
+    cmd="ffmpeg -y -r {} -i {}/frames/{}%05d.png -vcodec libx264 -pix_fmt yuv420p {}/walk-{}-{}fps.mp4".format(framerate,outdir,prefix,outdir,vidname,framerate)
     subprocess.call(cmd, shell=True)
 
-def generate_images_in_w_space(ws, truncation_psi,outdir,save_npy,prefix,vidname,framerate):
+def generate_images_in_w_space(ws, truncation_psi,outdir,save_npy,prefix,vidname,framerate,class_idx=None):
 
     Gs_kwargs = {
         'output_transform': dict(func=tflib.convert_images_to_uint8, nchw_to_nhwc=True),
-        'randomize_noise': False,
-        'truncation_psi': truncation_psi
+        'randomize_noise': False
     }
+    if truncation_psi is not None:
+        Gs_kwargs['truncation_psi'] = truncation_psi
+
+    noise_vars = [var for name, var in Gs.components.synthesis.vars.items() if name.startswith('noise')]
+    label = np.zeros([1] + Gs.input_shapes[1][1:])
+    if class_idx is not None:
+        label[:, class_idx] = 1
 
     for w_idx, w in enumerate(ws):
         print('Generating image for step %d/%d ...' % (w_idx, len(ws)))
         noise_rnd = np.random.RandomState(1) # fix noise
         tflib.set_vars({var: noise_rnd.randn(*var.shape.as_list()) for var in noise_vars}) # [height, width]
         images = Gs.components.synthesis.run(w, **Gs_kwargs) # [minibatch, height, width, channel]
-        PIL.Image.fromarray(images[0], 'RGB').save(f'{outdir}/{prefix}{w_idx:05d}.png')
+        # images = Gs.run(w,label, **Gs_kwargs) # [minibatch, height, width, channel]
+        PIL.Image.fromarray(images[0], 'RGB').save(f'{outdir}/frames/{prefix}{w_idx:05d}.png')
         if save_npy:
-          np.save(dnnlib.make_run_dir_path('%s%05d.npy' % (prefix,w_idx)), w)
+            np.save(f'{outdir}/vectors/{prefix}{w_idx:05d}.npz',w)
+            # np.savetxt(f'{outdir}/vectors/{prefix}{w_idx:05d}.txt',w.reshape(w.shape[0], -1))
 
-    cmd="ffmpeg -y -r {} -i {}/{}%05d.png -vcodec libx264 -pix_fmt yuv420p {}/walk-{}-{}fps.mp4".format(framerate,outdir,prefix,outdir,vidname,framerate)
+    cmd="ffmpeg -y -r {} -i {}/frames/{}%05d.png -vcodec libx264 -pix_fmt yuv420p {}/walk-{}-{}fps.mp4".format(framerate,outdir,prefix,outdir,vidname,framerate)
     subprocess.call(cmd, shell=True)
 
 def generate_latent_walk(network_pkl, truncation_psi, outdir, walk_type, frames, seeds, npys, save_vector, diameter=2.0, start_seed=0, framerate=24 ):
@@ -268,13 +289,17 @@ def generate_latent_walk(network_pkl, truncation_psi, outdir, walk_type, frames,
         _G, _D, Gs = pickle.load(fp)
 
     os.makedirs(outdir, exist_ok=True)
+    os.makedirs(outdir+"/frames", exist_ok=True)
+    if(save_vector):
+        os.makedirs(outdir+"/vectors", exist_ok=True)
 
     # Render images for dlatents initialized from random seeds.
     Gs_kwargs = {
         'output_transform': dict(func=tflib.convert_images_to_uint8, nchw_to_nhwc=True),
-        'randomize_noise': False,
-        'truncation_psi': truncation_psi
+        'randomize_noise': False
     }
+    if truncation_psi is not None:
+        Gs_kwargs['truncation_psi'] = truncation_psi
 
     noise_vars = [var for name, var in Gs.components.synthesis.vars.items() if name.startswith('noise')]
     zs = []
@@ -301,10 +326,10 @@ def generate_latent_walk(network_pkl, truncation_psi, outdir, walk_type, frames,
         if (len(wt)>1 and wt[1] == 'w'):
           if ws == []:
             for i in range(len(zs)):
-              ws.append(convertZtoW(zs[i]))
+              ws.append(convertZtoW(zs[i],truncation_psi))
 
           points = line_interpolate(ws,number_of_steps)
-          zpoints = line_interpolate(zs,number_of_steps)
+          # zpoints = line_interpolate(zs,number_of_steps)
 
         else:
           points = line_interpolate(zs,number_of_steps)
@@ -626,10 +651,12 @@ def main():
     parser_generate_images = subparsers.add_parser('generate-images', help='Generate images')
     parser_generate_images.add_argument('--network', help='Network pickle filename', dest='network_pkl', required=True)
     parser_generate_images.add_argument('--seeds', type=_parse_num_range, help='List of random seeds', dest='seeds', required=True)
-    parser_generate_images.add_argument('--truncation-psi', type=float, help='Truncation psi (default: %(default)s)', dest='truncation_psi', default=0.5)
+    parser_generate_images.add_argument('--trunc', type=float, help='Truncation psi (default: %(default)s)', dest='truncation_psi', default=0.5)
     parser_generate_images.add_argument('--class', dest='class_idx', type=int, help='Class label (default: unconditional)')
     parser_generate_images.add_argument('--create-grid', action='store_true', help='Add flag to save the generated images in a grid', dest='grid')
     parser_generate_images.add_argument('--outdir', help='Root directory for run results (default: %(default)s)', default='out', metavar='DIR')
+    parser_generate_images.add_argument('--save_vector', dest='save_vector', action='store_true', help='also save vector in .npy format')
+    parser_generate_images.add_argument('--fixnoise', action='store_true', help='generate images using fixed noise (more accurate for interpolations)')
     parser_generate_images.set_defaults(func=generate_images)
 
     parser_truncation_traversal = subparsers.add_parser('truncation-traversal', help='Generate truncation walk')
