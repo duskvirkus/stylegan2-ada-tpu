@@ -17,6 +17,7 @@
 * **align faces script**: From @pbaylies, this script will align images better for projection.
 * **top-k training**: Improve generator training by only propagating gradients from images the discriminator was most unsure of: [Sinha & Zhao](https://arxiv.org/abs/2002.06224).
 * **@aydao's config**: Extra large config for huge datasets (>100k img)
+* **pkls blending scripts**: From @justinpinkney, this scripts used for blending 2 pkls at various resolutions
 
 ## StyleGAN2 with adaptive discriminator augmentation (ADA)<br>&mdash; Official TensorFlow implementation
 
