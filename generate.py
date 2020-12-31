@@ -207,6 +207,41 @@ def line_interpolate(zs, steps):
      out.append(zs[i+1]*fraction + zs[i]*(1-fraction))
    return out
 
+# very hacky implementation of:
+# https://github.com/soumith/dcgan.torch/issues/14
+def slerp(val, low, high):
+    assert low.shape == high.shape
+
+    # z space
+    if len(low.shape) == 2:
+        out = np.zeros([low.shape[0],low.shape[1]])
+        for i in range(low.shape[0]):
+            omega = np.arccos(np.clip(np.dot(low[i]/np.linalg.norm(low[i]), high[i]/np.linalg.norm(high[i])), -1, 1))
+            so = np.sin(omega)
+            if so == 0:
+                out[i] = (1.0-val) * low[i] + val * high[i] # L'Hopital's rule/LERP
+            out[i] = np.sin((1.0-val)*omega) / so * low[i] + np.sin(val*omega) / so * high[i]
+    # w space
+    else:
+        out = np.zeros([low.shape[0],low.shape[1],low.shape[2]])
+
+        for i in range(low.shape[1]):
+            omega = np.arccos(np.clip(np.dot(low[0][i]/np.linalg.norm(low[0][i]), high[0][i]/np.linalg.norm(high[0][i])), -1, 1))
+            so = np.sin(omega)
+            if so == 0:
+                out[i] = (1.0-val) * low[0][i] + val * high[0][i] # L'Hopital's rule/LERP
+            out[0][i] = np.sin((1.0-val)*omega) / so * low[0][i] + np.sin(val*omega) / so * high[0][i]
+
+    return out
+
+def slerp_interpolate(zs, steps):
+   out = []
+   for i in range(len(zs)-1):
+    for index in range(steps):
+     fraction = index/float(steps)
+     out.append(slerp(fraction,zs[i],zs[i+1]))
+   return out
+
 def generate_zs_from_seeds(seeds,Gs):
     zs = []
     for seed_idx, seed in enumerate(seeds):
@@ -333,7 +368,25 @@ def generate_latent_walk(network_pkl, truncation_psi, outdir, walk_type, frames,
 
         else:
           points = line_interpolate(zs,number_of_steps)
+    elif wt[0] == 'sphere':
+        print('slerp')
+        if seeds and (len(seeds) > 0):
+            zs = generate_zs_from_seeds(seeds,Gs)
 
+        if ws == []:
+            number_of_steps = int(frames/(len(zs)-1))+1
+        else:
+            number_of_steps = int(frames/(len(ws)-1))+1
+
+        if (len(wt)>1 and wt[1] == 'w'):
+          if ws == []:
+            for i in range(len(zs)):
+              ws.append(convertZtoW(zs[i],truncation_psi))
+
+          points = slerp_interpolate(ws,number_of_steps)
+
+        else:
+          points = slerp_interpolate(zs,number_of_steps)
 
     # from Gene Kogan
     elif wt[0] == 'bspline':
@@ -358,12 +411,7 @@ def generate_latent_walk(network_pkl, truncation_psi, outdir, walk_type, frames,
     elif wt[0] == 'noiseloop':
         points = get_noiseloop(None,frames,diameter,start_seed)
 
-    if (wt[0] == 'line' and len(wt)>1 and wt[1] == 'w'):
-      # print(points[0][:,:,1])
-      # print(zpoints[0][:,1])
-      # ws = []
-      # for i in enumerate(len(points)):
-      #   ws.append(convertZtoW(points[i]))
+    if (len(wt)>1 and wt[1] == 'w'):
         #added for npys
         if seeds:
             seed_out = 'w-' + wt[0] + ('-'.join([str(seed) for seed in seeds]))
@@ -371,8 +419,8 @@ def generate_latent_walk(network_pkl, truncation_psi, outdir, walk_type, frames,
             seed_out = 'w-' + wt[0] + '-dlatents'
 
         generate_images_in_w_space(points, truncation_psi,outdir,save_vector,'frame', seed_out, framerate)
-    elif (len(wt)>1 and wt[1] == 'w'):
-      print('%s is not currently supported in w space, please change your interpolation type' % (wt[0]))
+    # elif (len(wt)>1 and wt[1] == 'w'):
+    #   print('%s is not currently supported in w space, please change your interpolation type' % (wt[0]))
     else:
         if(len(wt)>1):
             seed_out = 'z-' + wt[0] + ('-'.join([str(seed) for seed in seeds]))
