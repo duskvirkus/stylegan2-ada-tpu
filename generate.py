@@ -18,6 +18,7 @@ import re
 
 import scipy
 import numpy as np
+from numpy import linalg
 import PIL.Image
 
 import dnnlib
@@ -197,6 +198,39 @@ def get_noiseloop(endpoints, nf, d, start_seed):
         z[0,i] = features[i].get_val(inc*f)
       zs.append(z)
 
+    return zs
+
+def circular_interpolation(radius, latents_persistent, latents_interpolate):
+    latents_a, latents_b, latents_c = latents_persistent
+
+    latents_axis_x = (latents_a - latents_b).flatten() / linalg.norm(latents_a - latents_b)
+    latents_axis_y = (latents_a - latents_c).flatten() / linalg.norm(latents_a - latents_c)
+
+    latents_x = np.sin(np.pi * 2.0 * latents_interpolate) * radius
+    latents_y = np.cos(np.pi * 2.0 * latents_interpolate) * radius
+
+    latents = latents_a + latents_x * latents_axis_x + latents_y * latents_axis_y
+    return latents
+
+def get_circularloop(endpoints, nf, d, seed):
+    r = d/2
+    if seed:
+        np.random.RandomState(seed)
+
+    zs = []
+
+    rnd = np.random
+    latents_a = rnd.randn(1, Gs.input_shape[1])
+    latents_b = rnd.randn(1, Gs.input_shape[1])
+    latents_c = rnd.randn(1, Gs.input_shape[1])
+    latents = (latents_a, latents_b, latents_c)
+
+    current_pos = 0.0
+    step = 1./nf
+    
+    while(current_pos < 1.0):
+        zs.append(circular_interpolation(r, latents, current_pos))
+        current_pos += step
     return zs
 
 def line_interpolate(zs, steps):
@@ -410,6 +444,8 @@ def generate_latent_walk(network_pkl, truncation_psi, outdir, walk_type, frames,
     # from Dan Shiffman: https://editor.p5js.org/dvs/sketches/Gb0xavYAR
     elif wt[0] == 'noiseloop':
         points = get_noiseloop(None,frames,diameter,start_seed)
+    elif wt[0] == 'circularloop':
+        points = get_circularloop(None,frames,diameter,start_seed)
 
     if (len(wt)>1 and wt[1] == 'w'):
         #added for npys
