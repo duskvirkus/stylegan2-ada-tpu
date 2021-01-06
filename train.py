@@ -301,7 +301,7 @@ def setup_training_options(
         desc += f'-target{target:g}'
         args.augment_args.tune_target = target
     
-    if is not None:
+    if initstrength is not None:
         assert isinstance(initstrength, float)
         args.augment_args.initial_strength = initstrength
 
