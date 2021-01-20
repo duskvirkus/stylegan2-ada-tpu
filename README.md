@@ -19,6 +19,7 @@
 * **top-k training**: Improve generator training by only propagating gradients from images the discriminator was most unsure of: [Sinha & Zhao](https://arxiv.org/abs/2002.06224).
 * **@aydao's config**: Extra large config for huge datasets (>100k img)
 * **pkls blending scripts**: From @justinpinkney, this scripts used for blending 2 pkls at various resolutions
+* **JPG export**: From @arthurfdlr, use --jpg_quality={int value} to define the [JPG quality export](https://pillow.readthedocs.io/en/5.1.x/handbook/image-file-formats.html#jpeg), keep default value to export as PNG 
 
 ## StyleGAN2 with adaptive discriminator augmentation (ADA)<br>&mdash; Official TensorFlow implementation
 
