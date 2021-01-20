@@ -62,7 +62,7 @@ def create_image_grid(images, grid_size=None):
 
 #----------------------------------------------------------------------------
 
-def generate_images(network_pkl, seeds, truncation_psi, outdir, class_idx=None, dlatents_npz=None, grid=False, save_vector=False, fixnoise=False, jpg_quality=0):
+def generate_images(network_pkl, seeds, truncation_psi, outdir, class_idx=None, dlatents_npz=None, grid=False, save_vector=False, fixnoise=False, image_quality=0):
     tflib.init_tf()
     print('Loading networks from "%s"...' % network_pkl)
     with dnnlib.util.open_url(network_pkl) as fp:
@@ -73,9 +73,9 @@ def generate_images(network_pkl, seeds, truncation_psi, outdir, class_idx=None, 
         os.makedirs(outdir+"/vectors", exist_ok=True)
 
     # Rendering format
-    optimized = bool(jpg_quality)
-    image_format = 'jpg' if jpg_quality else 'png'
-    jpg_quality = int(np.clip(jpg_quality, 1, 95)) # 'quality' keyword option ignored for PNG encoding
+    optimized = bool(image_quality)
+    image_format = 'jpg' if image_quality else 'png'
+    image_quality = int(np.clip(image_quality, 1, 95)) # 'quality' keyword option ignored for PNG encoding
 
     # Render images for a given dlatent vector.
     if dlatents_npz is not None:
@@ -91,7 +91,7 @@ def generate_images(network_pkl, seeds, truncation_psi, outdir, class_idx=None, 
         for i, img in enumerate(imgs):
             fname = f'{outdir}/dlatent{i:02d}.{image_format}'
             print (f'Saved {fname}')
-            PIL.Image.fromarray(img, 'RGB').save(fname, optimize=optimized, quality=jpg_quality)
+            PIL.Image.fromarray(img, 'RGB').save(fname, optimize=optimized, quality=image_quality)
         return
 
     # Render images for dlatents initialized from random seeds.
@@ -119,7 +119,7 @@ def generate_images(network_pkl, seeds, truncation_psi, outdir, class_idx=None, 
             tflib.set_vars({var: rnd.randn(*var.shape.as_list()) for var in noise_vars}) # [height, width]
         image = Gs.run(z, label, **Gs_kwargs) # [minibatch, height, width, channel]
         images.append(image[0])
-        PIL.Image.fromarray(image[0], 'RGB').save(f'{outdir}/seed{seed:04d}.{image_format}', optimize=optimized, quality=jpg_quality)
+        PIL.Image.fromarray(image[0], 'RGB').save(f'{outdir}/seed{seed:04d}.{image_format}', optimize=optimized, quality=image_quality)
         if(save_vector):
             np.save(f'{outdir}/vectors/seed{seed:04d}',z)
             # np.savetxt(f'{outdir}/vectors/seed{seed:04d}',z)
@@ -127,7 +127,7 @@ def generate_images(network_pkl, seeds, truncation_psi, outdir, class_idx=None, 
     # If user wants to save a grid of the generated images
     if grid:
         print('Generating image grid...')
-        PIL.Image.fromarray(create_image_grid(np.array(images)), 'RGB').save(f'{outdir}/grid.{image_format}', optimize=optimized, quality=jpg_quality)
+        PIL.Image.fromarray(create_image_grid(np.array(images)), 'RGB').save(f'{outdir}/grid.{image_format}', optimize=optimized, quality=image_quality)
 
 #----------------------------------------------------------------------------
 
@@ -746,7 +746,7 @@ def main():
     parser_generate_images.add_argument('--outdir', help='Root directory for run results (default: %(default)s)', default='out', metavar='DIR')
     parser_generate_images.add_argument('--save_vector', dest='save_vector', action='store_true', help='also save vector in .npy format')
     parser_generate_images.add_argument('--fixnoise', action='store_true', help='generate images using fixed noise (more accurate for interpolations)')
-    parser_generate_images.add_argument('--jpg_quality', type=int, help='Define the quality compression for JPG exports, keep on 0 to export as PNG (default: 0, PNG export)', default=0)
+    parser_generate_images.add_argument('--image_quality', type=int, help='Quality compression for JPG exports (1 to 95), keep default value to export as PNG', default=0)
     parser_generate_images.set_defaults(func=generate_images)
 
     parser_truncation_traversal = subparsers.add_parser('truncation-traversal', help='Generate truncation walk')
