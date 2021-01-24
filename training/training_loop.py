@@ -99,6 +99,7 @@ def training_loop(
     lazy_regularization     = True,     # Perform regularization as a separate training step?
     G_reg_interval          = 4,        # How often the perform regularization for G? Ignored if lazy_regularization=False.
     D_reg_interval          = 16,       # How often the perform regularization for D? Ignored if lazy_regularization=False.
+    nimg                    = 0,        # current image count
     total_kimg              = 25000,    # Total length of the training, measured in thousands of real images.
     kimg_per_tick           = 4,        # Progress snapshot interval.
     image_snapshot_ticks    = 50,       # How often to save image snapshots? None = only save 'reals.png' and 'fakes-init.png'.
@@ -222,7 +223,7 @@ def training_loop(
         progress_fn(0, total_kimg)
     tick_start_time = time.time()
     maintenance_time = tick_start_time - start_time
-    cur_nimg = 0
+    cur_nimg = nimg
     cur_tick = -1
     tick_start_nimg = cur_nimg
     running_mb_counter = 0
