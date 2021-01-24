@@ -10,6 +10,7 @@
 * **Conditional dataset creation from folders**: Make conditional datasets from folders of images using `create_from image_folders` or `create_from image_folders_raw`
 * **Vertical Mirroring**: use `--mirrory=True` to flip training set top to bottom
 * **Set Initial Augmentation Strength**: use `--initstrength={float value}` to set the initialized strength of augmentations (really helpful when restarting training)
+* **Set Initial Kimg count**: use `--nkimg={int value}` to set the initial kimg count (helpful with restarts)
 * **Interpolations methods**: Multiple interpolation methods included in the `generate.py` script. Linear and Spherical interpolations between seeds, and random noise or circular loops;
 * **Neighbor vectors**: Fine-tune seed selections by looking at vectors near it. Included in the `generate.py` script
 * **Use np vectors in interpolations (in addition to seed values)** Use saved .npy or .npz files in interpolation metohds. Thanks @ekkolabs!
