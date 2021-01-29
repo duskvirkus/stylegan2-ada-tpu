@@ -10,6 +10,7 @@
 * **Conditional dataset creation from folders**: Make conditional datasets from folders of images using `create_from image_folders` or `create_from image_folders_raw`
 * **Vertical Mirroring**: use `--mirrory=True` to flip training set top to bottom
 * **Set Initial Augmentation Strength**: use `--initstrength={float value}` to set the initialized strength of augmentations (really helpful when restarting training)
+* **Set Initial Kimg count**: use `--nkimg={int value}` to set the initial kimg count (helpful with restarts)
 * **Interpolations methods**: Multiple interpolation methods included in the `generate.py` script. Linear and Spherical interpolations between seeds, and random noise or circular loops;
 * **Neighbor vectors**: Fine-tune seed selections by looking at vectors near it. Included in the `generate.py` script
 * **Use np vectors in interpolations (in addition to seed values)** Use saved .npy or .npz files in interpolation metohds. Thanks @ekkolabs!
@@ -19,6 +20,7 @@
 * **top-k training**: Improve generator training by only propagating gradients from images the discriminator was most unsure of: [Sinha & Zhao](https://arxiv.org/abs/2002.06224).
 * **@aydao's config**: Extra large config for huge datasets (>100k img)
 * **pkls blending scripts**: From @justinpinkney, this scripts used for blending 2 pkls at various resolutions
+* **JPG export**: From @arthurfdlr, use --jpg_quality={int value} to define the [JPG quality export](https://pillow.readthedocs.io/en/5.1.x/handbook/image-file-formats.html#jpeg), keep default value to export as PNG 
 
 ## StyleGAN2 with adaptive discriminator augmentation (ADA)<br>&mdash; Official TensorFlow implementation
 
