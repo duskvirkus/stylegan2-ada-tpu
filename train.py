@@ -46,6 +46,7 @@ def setup_training_options(
 
     # Base config.
     cfg        = None, # Base config: 'auto' (default), 'stylegan2', 'paper256', 'paper512', 'paper1024', 'cifar', 'cifarbaseline'
+    lrate      = None, # Override learning rate
     gamma      = None, # Override R1 gamma: <float>, default = depends on cfg
     nkimg       = None, # Override starting count
     kimg       = None, # Override training duration: <int>, default = depends on cfg
@@ -240,6 +241,10 @@ def setup_training_options(
         args.loss_args.pl_weight = 0 # disable path length regularization
         args.G_args.style_mixing_prob = None # disable style mixing
         args.D_args.architecture = 'orig' # disable residual skip connections
+
+    if lrate is not None:
+        assert isinstance(lrate, float)
+        args.G_opt_args.learning_rate = args.D_opt_args.learning_rate = lrate
 
     if gamma is not None:
         assert isinstance(gamma, float)
@@ -594,10 +599,12 @@ def main():
 
     group = parser.add_argument_group('base config')
     group.add_argument('--cfg',   help='Base config (default: auto)', choices=['auto', '11gb-gpu','11gb-gpu-complex', '24gb-gpu','24gb-gpu-complex', '48gb-gpu','48gb-2gpu', 'stylegan2', 'paper256', 'paper512', 'paper1024', 'cifar', 'cifarbaseline', 'aydao'])
+    group.add_argument('--lrate', help='Override learning rate', type=float, metavar='FLOAT')
 
     group.add_argument('--gamma', help='Override R1 gamma', type=float, metavar='FLOAT')
     group.add_argument('--nkimg',  help='Override starting count', type=int, metavar='INT')
     group.add_argument('--kimg',  help='Override training duration', type=int, metavar='INT')
+    group.add_argument('--topk',  help='utilize top-k training', type=int, metavar='FLOAT')
 
     group = parser.add_argument_group('discriminator augmentation')
     group.add_argument('--aug',    help='Augmentation mode (default: ada)', choices=['noaug', 'ada', 'fixed', 'adarv'])
