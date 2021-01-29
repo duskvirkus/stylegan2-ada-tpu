@@ -47,9 +47,11 @@ def setup_training_options(
     # Base config.
     cfg        = None, # Base config: 'auto' (default), 'stylegan2', 'paper256', 'paper512', 'paper1024', 'cifar', 'cifarbaseline'
     lrate      = None, # Override learning rate
+    ttur       = None, # Use Two Time-Scale Update Rule
     gamma      = None, # Override R1 gamma: <float>, default = depends on cfg
-    nkimg       = None, # Override starting count
+    nkimg      = None, # Override starting count
     kimg       = None, # Override training duration: <int>, default = depends on cfg
+    topk      = None, # set top-k percentage
 
     # Discriminator augmentation.
     aug        = None, # Augmentation mode: 'ada' (default), 'noaug', 'fixed', 'adarv'
@@ -246,6 +248,9 @@ def setup_training_options(
         assert isinstance(lrate, float)
         args.G_opt_args.learning_rate = args.D_opt_args.learning_rate = lrate
 
+    if ttur is not None:
+    	args.D_opt_args.learning_rate = (args.G_opt_args.learning_rate * 2.0)
+
     if gamma is not None:
         assert isinstance(gamma, float)
         if not gamma >= 0:
@@ -263,6 +268,12 @@ def setup_training_options(
             raise UserError('--kimg must be at least 1')
         desc += f'-kimg{kimg:d}'
         args.total_kimg = kimg
+
+    if topk is not None:
+    	assert isinstance(topk, float)
+    	args.loss_args.G_top_k = True
+    	args.loss_args.G_top_k_gamma = topk
+    	args.loss_args.G_top_k_frac = 0.5
 
     # ---------------------------------------------------
     # Discriminator augmentation: aug, p, target, augpipe
@@ -600,7 +611,7 @@ def main():
     group = parser.add_argument_group('base config')
     group.add_argument('--cfg',   help='Base config (default: auto)', choices=['auto', '11gb-gpu','11gb-gpu-complex', '24gb-gpu','24gb-gpu-complex', '48gb-gpu','48gb-2gpu', 'stylegan2', 'paper256', 'paper512', 'paper1024', 'cifar', 'cifarbaseline', 'aydao'])
     group.add_argument('--lrate', help='Override learning rate', type=float, metavar='FLOAT')
-
+    group.add_argument('--ttur', help='Use Two Time-Scale Update Rule (double learning rate for discriminator) (default: false)', type=_str_to_bool, metavar='BOOL')
     group.add_argument('--gamma', help='Override R1 gamma', type=float, metavar='FLOAT')
     group.add_argument('--nkimg',  help='Override starting count', type=int, metavar='INT')
     group.add_argument('--kimg',  help='Override training duration', type=int, metavar='INT')
