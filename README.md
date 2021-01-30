@@ -11,13 +11,15 @@
 * **Vertical Mirroring**: use `--mirrory=True` to flip training set top to bottom
 * **Set Initial Augmentation Strength**: use `--initstrength={float value}` to set the initialized strength of augmentations (really helpful when restarting training)
 * **Set Initial Kimg count**: use `--nkimg={int value}` to set the initial kimg count (helpful with restarts)
+* **Set learnig rate from CLI**: use `--lrate={float value}` to override config learning rate
+* **Enable Two Time-Scale Update Rule**: use `--ttur=True` to double the discriminator learnig rate compared to the generator.
 * **Interpolations methods**: Multiple interpolation methods included in the `generate.py` script. Linear and Spherical interpolations between seeds, and random noise or circular loops;
 * **Neighbor vectors**: Fine-tune seed selections by looking at vectors near it. Included in the `generate.py` script
 * **Use np vectors in interpolations (in addition to seed values)** Use saved .npy or .npz files in interpolation metohds. Thanks @ekkolabs!
 * **Flesh Digressions**: @aydao’s circular constant layer script edited to work with ADA see aydao_flesh_digressions.py
 * **Raw dataset creations**: Taken from the @skyflynil repo, reduces the size of datasets dramatically. Use `create_from images_raw` and `create_from image_folders_raw` in dataset creation, and use `--use-raw=True` in training (False by default!)
 * **align faces script**: From @pbaylies, this script will align images better for projection.
-* **top-k training**: Improve generator training by only propagating gradients from images the discriminator was most unsure of: [Sinha & Zhao](https://arxiv.org/abs/2002.06224).
+* **top-k training**: Improve generator training by only propagating gradients from images the discriminator was most unsure of: [Sinha & Zhao](https://arxiv.org/abs/2002.06224). Use `--topk={float value}` to define the decay rate.
 * **@aydao's config**: Extra large config for huge datasets (>100k img)
 * **pkls blending scripts**: From @justinpinkney, this scripts used for blending 2 pkls at various resolutions
 * **JPG export**: From @arthurfdlr, use --jpg_quality={int value} to define the [JPG quality export](https://pillow.readthedocs.io/en/5.1.x/handbook/image-file-formats.html#jpeg), keep default value to export as PNG 
