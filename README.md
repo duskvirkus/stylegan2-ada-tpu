@@ -1,3 +1,6 @@
+## PyTorch notice
+I’ll likely be moving all features from this repo to the [PyTorch version](https://github.com/dvschultz/stylegan2-ada-pytorch). That will take time, so until then this remains the best repo to use for full features.
+
 ## Need Help?
 * If you’re new to StyleGAN2-ADA and looking to get started, please check out [this video series](https://www.youtube.com/playlist?list=PLWuCzxqIpJs8ViuBIUtAk-dsAtdrApYoy) from a course Lia Coleman and I taught in October 2020.
 * Interested in contributing? Please submit PRs or discuss changes in the [Artificial Images Slack](https://join.slack.com/t/ml-images/shared_invite/zt-9mxoe7va-eBZ9xzAWpx8VRL~Km_PzUQ) channel
