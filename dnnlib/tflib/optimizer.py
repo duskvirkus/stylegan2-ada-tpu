@@ -152,7 +152,7 @@ class Optimizer:
     # Compute gradients.
     with tf.name_scope(self.id + "_grad"), tf.device(device.name), tf.control_dependencies(deps):
       loss = self.apply_loss_scaling(tf.cast(loss, tf.float32))
-      gate = tf.optimizers.Optimizer.GATE_NONE  # disable gating to reduce memory usage
+      gate = tf.keras.Optimizer.GATE_NONE  # disable gating to reduce memory usage
       grad_list = device.optimizer.compute_gradients(loss=loss, var_list=trainable_vars, gate_gradients=gate)
 
     # Register gradients.
@@ -349,8 +349,8 @@ class SimpleAdam:
   def variables(self):
     return self.all_state_vars
 
-  def compute_gradients(self, loss, var_list, gate_gradients=tf.optimizers.Optimizer.GATE_NONE):
-    assert gate_gradients == tf.optimizers.Optimizer.GATE_NONE
+  def compute_gradients(self, loss, var_list, gate_gradients=tf.keras.GATE_NONE):
+    assert gate_gradients == tf.keras.Optimizer.GATE_NONE
     return list(zip(tf.gradients(loss, var_list), var_list))
 
   def apply_gradients(self, grads_and_vars):
