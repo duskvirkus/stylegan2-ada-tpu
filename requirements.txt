@@ -1,0 +1,16 @@
+numpy
+tensorflow>=2
+pillow
+scipy
+tqdm
+opensimplex
+moviepy
+typer
+imageio
+sklearn
+dlib
+requests
+liburl
+tensorflow_addons
+lmdb
+opencv-python
